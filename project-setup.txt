@@ -1,0 +1,14 @@
+# python manage.py makemigrations
+
+CREATE TABLE django_content_type (
+    id SERIAL PRIMARY KEY,
+    app_label VARCHAR(100) NOT NULL,
+    model VARCHAR(100) NOT NULL,
+    CONSTRAINT django_content_type_app_label_model_uniq UNIQUE (app_label, model)
+);
+
+# python manage.py migrate contenttypes --fake
+
+# python manage.py migrate
+
+# python manage.py seed_defaults
