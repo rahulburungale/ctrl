@@ -13,7 +13,7 @@ __pycache__/
 
 # Virtual environment
 venv/
-env/
+# env/
 .venv/
 ENV/
 
@@ -29,8 +29,8 @@ staticfiles/
 !**/migrations/__init__.py
 
 # Django secrets
-.env
-.env.*
+# .env
+# .env.*
 
 # =========================
 # IDE / Editor files
