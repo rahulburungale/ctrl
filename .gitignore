@@ -29,8 +29,8 @@ staticfiles/
 !**/migrations/__init__.py
 
 # Django secrets
-# .env
-# .env.*
+.env
+.env.*
 
 # =========================
 # IDE / Editor files
