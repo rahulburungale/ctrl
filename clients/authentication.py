@@ -28,7 +28,10 @@ class ClientJWTAuthentication(BaseAuthentication):
         if payload.get("type") != "client":
             return None
 
-        client = Client.objects.filter(id=payload.get("client_id")).first()
+        client = Client.objects.filter(
+            id=payload.get("client_id"),
+            is_active=True,
+        ).first()
         if not client:
             raise AuthenticationFailed("Client not found")
 

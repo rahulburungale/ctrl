@@ -1,48 +1,46 @@
 from rest_framework.permissions import BasePermission
-from access_control.models import UserRole, RolePermission, UserPermission
+
+from access_control.rbac import (
+    is_superadmin,
+    log_permission_denied,
+    permission_key_for_request,
+    user_has_permission,
+)
 
 
 class HasPermission(BasePermission):
     """
-    Checks user permissions based on:
-    1. Superadmin → full access
-    2. Role permissions
-    3. User permissions
+    Central RBAC permission class.
+
+    Resolution order:
+    1. SuperAdmin users bypass all checks.
+    2. Explicit view.permission_required values are used when present.
+    3. Otherwise module/action is inferred from the view and HTTP method.
     """
 
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
 
-        # SUPER ADMIN CHECK
-        if UserRole.objects.filter(
-            user=request.user,
-            is_superadmin=True
-        ).exists():
+        if is_superadmin(request.user):
             return True
 
-        module = getattr(view, "module", None)
-        action = getattr(view, "action", None)
-
-        if not module or not action:
+        permission_key = permission_key_for_request(request, view)
+        if not permission_key:
+            log_permission_denied(request, "missing-permission-key")
             return False
 
-        permission_key = f"{module}.{action}"
-
-        # --- USER LEVEL PERMISSIONS ---
-        user_perm = UserPermission.objects.filter(
-            user=request.user
-        ).first()
-
-        if user_perm and user_perm.permissions.get(permission_key):
+        if user_has_permission(request.user, permission_key):
             return True
 
-        # --- ROLE LEVEL PERMISSIONS ---
-        roles = UserRole.objects.filter(user=request.user)
-
-        for r in roles:
-            role_perm = RolePermission.objects.filter(role=r.role).first()
-            if role_perm and role_perm.permissions.get(permission_key):
-                return True
-
+        log_permission_denied(request, permission_key)
         return False
+
+
+class IsSuperAdmin(BasePermission):
+    def has_permission(self, request, view):
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and is_superadmin(request.user)
+        )

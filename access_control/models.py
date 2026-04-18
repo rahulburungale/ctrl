@@ -1,6 +1,7 @@
 from django.db import models
 from accounts.models import User
 from departments.models import Department
+from departments.models import Division
 from clients.models import Client
 
 
@@ -60,6 +61,15 @@ class DepartmentAccess(models.Model):
 
     class Meta:
         db_table = "department_access"
+
+
+class DivisionAccess(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    division = models.ForeignKey(Division, on_delete=models.CASCADE)
+
+    class Meta:
+        db_table = "division_access"
+        unique_together = ("user", "division")
 
 
 class ClientAccess(models.Model):

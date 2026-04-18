@@ -6,7 +6,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.hashers import check_password
 from clients.models import Client
-from clients.serializers import ClientLoginSerializer, ClientSerializer
+from clients.serializers import ClientListSerializer, ClientLoginSerializer
 from common.response import APIResponse
 from audit.services import log_login
 from drf_spectacular.utils import extend_schema
@@ -41,10 +41,6 @@ class ClientLogin(APIView):
             "Login successful",
             {
                 "access": token,
-                "client": {
-                    "id": client.id,
-                    "name": client.name,
-                    "email": client.email,
-                },
+                "client": ClientListSerializer(client).data,
             },
         )

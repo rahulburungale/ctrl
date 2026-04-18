@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from access_control.permissions import HasPermission
+from access_control.rbac import filter_queryset_for_user
 from .response import APIResponse
 from .pagination import OptionalPagination
 
@@ -9,6 +10,7 @@ class BaseListCreateAPIView(APIView):
     model = None
     serializer_class = None
     module = None
+    resource = None
 
     def dispatch(self, request, *args, **kwargs):
         # Set action based on HTTP method for permission checking
@@ -20,6 +22,8 @@ class BaseListCreateAPIView(APIView):
 
     def get(self, request):
         queryset = self.model.objects.filter(is_active=True)
+        if self.resource:
+            queryset = filter_queryset_for_user(request.user, queryset, self.resource)
         
         paginator = OptionalPagination()
         paginated_data = paginator.paginate_queryset(queryset, request)

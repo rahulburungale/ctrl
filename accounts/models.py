@@ -16,6 +16,7 @@ class User(AbstractBaseUser):
     employee_code = models.CharField(max_length=100, unique=True)
 
     department_id = models.BigIntegerField(null=True)
+    division_id = models.BigIntegerField(null=True)
     designation_id = models.BigIntegerField(null=True)
 
     reporting_to = models.ForeignKey(

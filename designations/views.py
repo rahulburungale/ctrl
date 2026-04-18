@@ -9,6 +9,7 @@ from drf_spectacular.utils import extend_schema
 
 class DesignationAPI(APIView):
     permission_classes = [HasPermission]
+    permission_module = "designation"
     module = "DESIGNATION"
 
     def get(self, request):
@@ -23,7 +24,7 @@ class DesignationAPI(APIView):
                 DesignationSerializer(paginated_data, many=True).data
             )
         
-        return APIResponse.success(DesignationSerializer(queryset, many=True).data)
+        return APIResponse.success(data=DesignationSerializer(queryset, many=True).data)
 
     @extend_schema(request=DesignationSerializer)
     def post(self, request):
@@ -38,7 +39,13 @@ class DesignationAPI(APIView):
 
 class DesignationDetailAPI(APIView):
     permission_classes = [HasPermission]
+    permission_module = "designation"
     module = "DESIGNATION"
+    permission_required = {
+        "PUT": "designation.update",
+        "PATCH": "designation.restore",
+        "DELETE": "designation.delete",
+    }
 
     @extend_schema(request=DesignationSerializer)
     def put(self, request, pk):
@@ -62,7 +69,8 @@ class DesignationDetailAPI(APIView):
             return APIResponse.error("Designation not found", 404)
 
         obj.is_active = False
-        obj.save(update_fields=["is_active"])
+        obj.updated_by = request.user
+        obj.save(update_fields=["is_active", "updated_by", "updated_at"])
 
         return APIResponse.success("Designation deleted")
 
@@ -74,6 +82,7 @@ class DesignationDetailAPI(APIView):
             return APIResponse.error("Designation not found", 404)
 
         obj.is_active = True
-        obj.save(update_fields=["is_active"])
+        obj.updated_by = request.user
+        obj.save(update_fields=["is_active", "updated_by", "updated_at"])
 
         return APIResponse.success("Designation restored")

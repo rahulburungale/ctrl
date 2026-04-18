@@ -1,5 +1,6 @@
 from rest_framework.views import APIView
 from access_control.permissions import HasPermission
+from access_control.rbac import filter_queryset_for_user
 from common.response import APIResponse
 from common.pagination import OptionalPagination
 from clients.models import Client
@@ -8,11 +9,13 @@ from drf_spectacular.utils import extend_schema
 
 class ClientAPI(APIView):
     permission_classes = [HasPermission]
+    permission_module = "client"
     module = "CLIENT"
 
     def get(self, request):
         self.action = "VIEW"
         queryset  = Client.objects.filter(is_active=True)
+        queryset = filter_queryset_for_user(request.user, queryset, "client")
 
         paginator = OptionalPagination()
         paginated_data = paginator.paginate_queryset(queryset, request)
@@ -31,7 +34,7 @@ class ClientAPI(APIView):
 
         serializer = ClientCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        serializer.save(created_by=request.user)
 
         return APIResponse.success(
             "Client created successfully",
@@ -41,19 +44,29 @@ class ClientAPI(APIView):
 
 class ClientDetailAPI(APIView):
     permission_classes = [HasPermission]
+    permission_module = "client"
     module = "CLIENT"
+    permission_required = {
+        "PUT": "client.update",
+        "PATCH": "client.restore",
+        "DELETE": "client.delete",
+    }
 
     @extend_schema(request=ClientCreateSerializer)
     def put(self, request, pk):
         self.action = "EDIT"
 
-        client = Client.objects.filter(pk=pk).first()
+        client = filter_queryset_for_user(
+            request.user,
+            Client.objects.filter(pk=pk),
+            "client",
+        ).first()
         if not client:
             return APIResponse.error("Client not found", 404)
 
         serializer = ClientCreateSerializer(client, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        serializer.save(updated_by=request.user)
 
         return APIResponse.success(
             "Client updated successfully",
@@ -63,12 +76,17 @@ class ClientDetailAPI(APIView):
     def delete(self, request, pk):
         self.action = "DELETE"
 
-        client = Client.objects.filter(pk=pk).first()
+        client = filter_queryset_for_user(
+            request.user,
+            Client.objects.filter(pk=pk),
+            "client",
+        ).first()
         if not client:
             return APIResponse.error("Client not found", 404)
 
         client.is_active = False
-        client.save(update_fields=["is_active"])
+        client.updated_by = request.user
+        client.save(update_fields=["is_active", "updated_by", "updated_at"])
 
         return APIResponse.success("Client deactivated successfully")
 
@@ -78,11 +96,16 @@ class ClientDetailAPI(APIView):
         """
         self.action = "RESTORE"
 
-        client = Client.objects.filter(pk=pk).first()
+        client = filter_queryset_for_user(
+            request.user,
+            Client.objects.filter(pk=pk),
+            "client",
+        ).first()
         if not client:
             return APIResponse.error("Client not found", 404)
 
         client.is_active = True
-        client.save(update_fields=["is_active"])
+        client.updated_by = request.user
+        client.save(update_fields=["is_active", "updated_by", "updated_at"])
 
         return APIResponse.success("Client restored successfully")

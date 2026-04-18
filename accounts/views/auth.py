@@ -3,6 +3,7 @@ from rest_framework.permissions import AllowAny
 from django.contrib.auth import authenticate, login, logout
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.authtoken.models import Token
+from django.conf import settings
 from drf_spectacular.utils import extend_schema
 from accounts.models import User, OTPRequest
 from accounts.serializers import LoginSerializer, OTPLoginSerializer, VerifyOTPSerializer
@@ -65,7 +66,7 @@ class LoginOTP(APIView):
 
         employee_code = serializer.validated_data["employee_code"]
 
-        user = User.objects.filter(employee_code=employee_code).first()
+        user = User.objects.filter(employee_code=employee_code, is_active=True).first()
 
         if not user:
             log_login(
@@ -80,7 +81,8 @@ class LoginOTP(APIView):
         otp = str(random.randint(100000, 999999))
         OTPRequest.objects.create(user=user, otp=otp)
 
-        return APIResponse.success("OTP sent", {"otp": otp})
+        data = {"otp": otp} if settings.DEBUG else None
+        return APIResponse.success("OTP sent", data)
     
 
 class VerifyOTP(APIView):
@@ -95,7 +97,8 @@ class VerifyOTP(APIView):
 
         record = OTPRequest.objects.filter(
             otp=otp,
-            is_used=False
+            is_used=False,
+            user__is_active=True,
         ).first()
 
         if not record:
